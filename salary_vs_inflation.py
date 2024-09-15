@@ -49,13 +49,15 @@ def calculate_inflation(year1: int, year2: int) -> float:
     return cpi_year.loc[year2].iloc[0] / cpi_year.loc[year1].iloc[0]  # type: ignore
 
 
-def calculate_adjusted_salaries(salaries_dict: dict[int, float], target_year: int = 2000) -> pd.DataFrame:
+def calculate_adjusted_salaries(salaries_dict: dict[int, float]) -> pd.DataFrame:
     """Transform salaries from a given year to a target year."""
     salaries = pd.Series(salaries_dict, name="Salary").rename_axis(index="year").sort_index().to_frame()
-    all_salaries, _ = salaries.align(pd.DataFrame([[0]], index=pd.RangeIndex(salaries.index[0], 2024)), axis=0)
+    all_salaries, _ = salaries.align(pd.DataFrame([[0]], index=pd.RangeIndex(salaries.index[0], 2025)), axis=0)
+    all_salaries['reference'] = salaries.index.to_series()
     all_salaries = all_salaries.ffill().bfill().rename_axis(index="year")
+
     all_salaries["Adjusted Salary"] = all_salaries.apply(
-        lambda x: x.Salary * calculate_inflation(int(x.name), target_year),
+        lambda x: x.Salary * calculate_inflation(int(x.name), int(x.reference)),
         axis=1,
     )
     # This ensures better looking plots because of the date index
@@ -74,6 +76,8 @@ plot_container = st.empty()
 
 # Reference year slider
 min_year = min(list(salaries.keys()))
-reference_year = st.slider("Reference Year", min_year, 2024, 2002)
-adjusted_salaries = calculate_adjusted_salaries(salaries, target_year=reference_year)  # type: ignore
-plot_container.line_chart(adjusted_salaries, color=["#E64662", "#468FE6"])
+adjusted_salaries = calculate_adjusted_salaries(salaries)  # type: ignore
+plot_container.line_chart(adjusted_salaries[['Salary', 'Adjusted Salary']], color=["#E64662", "#468FE6"])
+
+if st.checkbox("Show results as table"):
+    st.dataframe(adjusted_salaries, hide_index=False)
