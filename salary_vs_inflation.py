@@ -16,17 +16,22 @@ with st.expander("Additional information"):
     #### Origin of data
 
     The Consumer Price Index (CPI) data for the UK was downloaded from
-    the [ONS](https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7bt/mm23) website.
+    the [ONS](https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7bt/mm23) website. It covers
+    the period from 1988 onwards.
 
     #### Calculations
 
     In order to convert the salary you had at a given year ($year1$) into the salary you should
-    have had in $year2$ if it had followed the inflation, the following formula has been used:
+    have had in $year2$ (with $year2 > year1$) if it had followed the inflation, the following formula has been used:
     """)
     st.latex(r"""Salary_{year2} = Salary_{year1} \times \frac{CPI_{year2}}{CPI_{year1}}""")
     st.markdown("""
-    Note that, if $year2 < year1$, then you get what your "$year2$'s salary" is actually worth in
-    "$year1$'s money". In the app below, $year2$ is called "target year" or "reference year".
+    In the app below, $Salary_{year2}$ is called "target salary" and $year1$ is called "reference year".
+    The reference year is by default the previous year entered in the table. So there could be several of them.
+    It is assumed that each entry is an update to your salary that "resets" the effects of inflation.  
+    Note that, in order to get what your "$year1$'s salary" is actually worth in "$year2$'s money" (what I call the
+    "eroded salary"), then one can simply invert the ratio of CPIs.  
+    Finallly, a unique reference year can also be used to study long-term trends. 
                 """)
 
 
@@ -49,17 +54,31 @@ def calculate_inflation(year1: int, year2: int) -> float:
     return cpi_year.loc[year2].iloc[0] / cpi_year.loc[year1].iloc[0]  # type: ignore
 
 
-def calculate_adjusted_salaries(salaries_dict: dict[int, float]) -> pd.DataFrame:
+def calculate_adjusted_salaries(salaries_dict: dict[int, float], target_year: int | None = None) -> pd.DataFrame:
     """Transform salaries from a given year to a target year."""
     salaries = pd.Series(salaries_dict, name="Salary").rename_axis(index="year").sort_index().to_frame()
     all_salaries, _ = salaries.align(pd.DataFrame([[0]], index=pd.RangeIndex(salaries.index[0], 2025)), axis=0)
-    all_salaries['reference'] = salaries.index.to_series()
+    all_salaries["reference"] = salaries.index.to_series()
     all_salaries = all_salaries.ffill().bfill().rename_axis(index="year")
 
-    all_salaries["Adjusted Salary"] = all_salaries.apply(
-        lambda x: x.Salary * calculate_inflation(int(x.name), int(x.reference)),
-        axis=1,
-    )
+    if target_year is None:
+        all_salaries["Eroded Salary"] = all_salaries.apply(
+            lambda x: x.Salary * calculate_inflation(int(x.name), int(x.reference)),
+            axis=1,
+        )
+        all_salaries["Target Salary"] = all_salaries.apply(
+            lambda x: x.Salary * calculate_inflation(int(x.reference), int(x.name)),
+            axis=1,
+        )
+    else:
+        all_salaries["Eroded Salary"] = all_salaries.apply(
+            lambda x: x.Salary * calculate_inflation(int(x.name), target_year),
+            axis=1,
+        )
+        all_salaries["Target Salary"] = all_salaries.apply(
+            lambda x: x.Salary * calculate_inflation(target_year, int(x.name)),
+            axis=1,
+        )
     # This ensures better looking plots because of the date index
     all_salaries.index = pd.to_datetime(all_salaries.index, format="%Y")
 
@@ -68,7 +87,7 @@ def calculate_adjusted_salaries(salaries_dict: dict[int, float]) -> pd.DataFrame
 
 st.subheader("Your salary (per year)", divider=True)
 
-salaries = {2002: 24000.0, 2017: 40000, 2022: 55000}
+salaries = {2002: 24000.0, 2014: 35000, 2022: 55000}
 salaries = st.data_editor(salaries, num_rows="dynamic", column_config={"_index": "Year", "value": "Salary"})
 
 st.subheader("Effect of inflation on your salary", divider=True)
@@ -88,5 +107,5 @@ plot_container.line_chart(
     adjusted_salaries[["Salary", "Eroded Salary", "Target Salary"]], color=["#E64662", "#468FE6", "#2CDC15"]
 )
 
-if st.checkbox("Show results as table"):
+with st.expander("Results as a table"):
     st.dataframe(adjusted_salaries, hide_index=False)
