@@ -1,5 +1,7 @@
 # Salary vs Inflation
 
+![](docs/app_screenshot.png)
+
 ## Description
 
 This is the repository behind the [Salary vs Inflation](https://salary-vs-inflation.streamlit.app/) Streamlit app.
@@ -15,10 +17,19 @@ The Consumer Price Index (CPI) data for the UK was downloaded from the [ONS](htt
 
 ### Calculations
 
-In order to convert the salary you had at a given year ($year1$) into the salary you should have had in $year2$ if it had followed the inflation, the following formula has been used:
+In order to convert the salary you had at a given year ($year1$) into the salary you should have had in $year2$
+if it had followed the inflation, the following formula has been used:
 
 ```math
 Salary_{year2} = Salary_{year1} \times \frac{CPI_{year2}}{CPI_{year1}}
+```
+
+$Salary_{year2}$ is called "target salary" and $year1$ is called "reference year".  
+Note that, in order to get what your "reference salary" is actually worth in "$year2$'s money" (what I call the
+"eroded salary"), then one can simply invert the ratio of CPIs.
+
+```math
+Salary_{eroded} = Salary_{ref} \times \frac{CPI_{ref}}{CPI_{year2}}
 ```
 
 ## Running the app locally
