@@ -5,7 +5,7 @@ from numpy.typing import ArrayLike, NDArray
 import streamlit as st
 import pandas as pd
 
-st.title("Salary vs Inflation")
+st.title('Salary vs Inflation')
 st.markdown("""
     This tool shows the effect of inflation on your buying power.  
     First enter your salary for one or several years in the table below.
@@ -14,7 +14,7 @@ st.markdown("""
     re-evaluated every year ("Target Salary").
     """)
 
-with st.expander("Additional information"):
+with st.expander('Additional information'):
     st.markdown("""
     #### Origin of data
 
@@ -40,15 +40,15 @@ with st.expander("Additional information"):
 
 @st.cache_data
 def load_cpi():
-    return pd.read_csv("data/cpi_by_year.csv", index_col="year")
+    return pd.read_csv('data/cpi_by_year.csv', index_col='year')
 
 
 # Load CPI data and show in the sidebar
 with st.sidebar:
-    data_load_state = st.text("Loading CPI data...")
+    data_load_state = st.text('Loading CPI data...')
     cpi_year = load_cpi()
-    data_load_state.text("Info: CPI data loaded")
-    st.subheader("CPI Data (ONS)")
+    data_load_state.text('Info: CPI data loaded')
+    st.subheader('CPI Data (ONS)')
     st.dataframe(cpi_year, height=600)
 
 
@@ -63,46 +63,46 @@ def calculate_inflation(year1, year2):
 
 def calculate_adjusted_salaries(salaries_dict: dict[int, float], target_year: int | None = None) -> pd.DataFrame:
     """Transform salaries from a given year to a target year."""
-    salaries = pd.Series(salaries_dict, name="Salary").rename_axis(index="year").sort_index().to_frame()
+    salaries = pd.Series(salaries_dict, name='Salary').rename_axis(index='year').sort_index().to_frame()
     all_salaries, _ = salaries.align(pd.DataFrame([[0]], index=pd.RangeIndex(salaries.index[0], 2025)), axis=0)
-    all_salaries["reference"] = salaries.index.to_series().astype(int)
-    all_salaries = all_salaries.ffill().bfill().rename_axis(index="year")
+    all_salaries['reference'] = salaries.index.to_series().astype(int)
+    all_salaries = all_salaries.ffill().bfill().rename_axis(index='year')
 
     if target_year is None:
-        inflation = calculate_inflation(all_salaries["reference"], all_salaries.index).flatten()
+        inflation = calculate_inflation(all_salaries['reference'], all_salaries.index).flatten()
     else:
         inflation = calculate_inflation(target_year, all_salaries.index).flatten()
 
-    all_salaries["Eroded Salary"] = all_salaries["Salary"] / inflation
-    all_salaries["Target Salary"] = all_salaries["Salary"] * inflation
+    all_salaries['Eroded Salary'] = all_salaries['Salary'] / inflation
+    all_salaries['Target Salary'] = all_salaries['Salary'] * inflation
 
     # This ensures better looking plots because of the date index
-    all_salaries.index = pd.to_datetime(all_salaries.index, format="%Y")
+    all_salaries.index = pd.to_datetime(all_salaries.index, format='%Y')
 
     return all_salaries
 
 
-st.subheader("Your salary (per year)", divider=True)
+st.subheader('Your salary (per year)', divider=True)
 
 salaries = {2002: 24000.0, 2014: 35000, 2022: 55000}
-salaries = st.data_editor(salaries, num_rows="dynamic", column_config={"_index": "Year", "value": "Salary"})
+salaries = st.data_editor(salaries, num_rows='dynamic', column_config={'_index': 'Year', 'value': 'Salary'})
 
-st.subheader("Effect of inflation on your salary", divider=True)
+st.subheader('Effect of inflation on your salary', divider=True)
 plot_container = st.empty()  # empty container to display widgets out of order
 
 # Reference year slider
 with st.container(border=True):
     min_year = min(list(salaries.keys()))
-    if st.checkbox("Use a single reference year"):
-        reference_year = st.slider("Reference Year", min_year, 2024, 2002)
+    if st.checkbox('Use a single reference year'):
+        reference_year = st.slider('Reference Year', min_year, 2024, 2002)
         adjusted_salaries = calculate_adjusted_salaries(salaries, target_year=reference_year)  # type: ignore
     else:
-        reference_year = st.slider("Reference Year", min_year, 2024, 2002, disabled=True)
+        reference_year = st.slider('Reference Year', min_year, 2024, 2002, disabled=True)
         adjusted_salaries = calculate_adjusted_salaries(salaries, target_year=None)  # type: ignore
 
 plot_container.line_chart(
-    adjusted_salaries[["Salary", "Eroded Salary", "Target Salary"]], color=["#E64662", "#468FE6", "#2CDC15"]
+    adjusted_salaries[['Salary', 'Eroded Salary', 'Target Salary']], color=['#E64662', '#468FE6', '#2CDC15']
 )
 
-with st.expander("Results as a table"):
+with st.expander('Results as a table'):
     st.dataframe(adjusted_salaries, hide_index=False)
