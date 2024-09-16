@@ -1,9 +1,10 @@
 """Streamlit app to calculate salaries in real terms."""
 
 from typing import overload
-from numpy.typing import ArrayLike, NDArray
-import streamlit as st
+
 import pandas as pd
+import streamlit as st
+from numpy.typing import ArrayLike, NDArray
 
 st.title('Salary vs Inflation')
 st.markdown("""
