@@ -76,8 +76,17 @@ plot_container = st.empty()
 
 # Reference year slider
 min_year = min(list(salaries.keys()))
-adjusted_salaries = calculate_adjusted_salaries(salaries)  # type: ignore
-plot_container.line_chart(adjusted_salaries[['Salary', 'Adjusted Salary']], color=["#E64662", "#468FE6"])
+with st.container(border=True):
+    if st.checkbox("Use a single reference year"):
+        reference_year = st.slider("Reference Year", min_year, 2024, 2002)
+        adjusted_salaries = calculate_adjusted_salaries(salaries, target_year=reference_year)  # type: ignore
+    else:
+        reference_year = st.slider("Reference Year", min_year, 2024, 2002, disabled=True)
+        adjusted_salaries = calculate_adjusted_salaries(salaries, target_year=None)  # type: ignore
+
+plot_container.line_chart(
+    adjusted_salaries[["Salary", "Eroded Salary", "Target Salary"]], color=["#E64662", "#468FE6", "#2CDC15"]
+)
 
 if st.checkbox("Show results as table"):
     st.dataframe(adjusted_salaries, hide_index=False)
