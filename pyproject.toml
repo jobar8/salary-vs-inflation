@@ -1,16 +1,15 @@
 [project]
 name = "salary-vs-inflation"
-version = "0.1.0"
+version = "1.0.0"
 description = "Streamlit app to see the effect of inflation on your salary"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["pandas>=2.2.2", "streamlit>=1.38.0"]
+dependencies = ["streamlit>=1.38.0"]
 
 [project.optional-dependencies]
 dev = [
     "hvplot>=0.10.0",
     "ipykernel>=6.29.5",
-    "pandas>=2.2.2",
     "pytest>=8.3.3",
     "seaborn>=0.13.2",
     "jupyter_bokeh",

@@ -2,6 +2,7 @@
 
 from typing import overload
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 from numpy.typing import ArrayLike, NDArray
@@ -83,8 +84,9 @@ def calculate_adjusted_salaries(salaries_dict: dict[int, float], target_year: in
     return all_salaries
 
 
+# Input table
 st.subheader('Your salary (per year)', divider=True)
-
+st.caption('Edit the table below to enter your own data. Rows can be added or removed.')
 salaries = {2002: 24000.0, 2014: 35000, 2022: 55000}
 salaries = st.data_editor(salaries, num_rows='dynamic', column_config={'_index': 'Year', 'value': 'Salary'})
 
@@ -101,9 +103,25 @@ with st.container(border=True):
         reference_year = st.slider('Reference Year', min_year, 2024, 2002, disabled=True)
         adjusted_salaries = calculate_adjusted_salaries(salaries, target_year=None)  # type: ignore
 
-plot_container.line_chart(
-    adjusted_salaries[['Salary', 'Eroded Salary', 'Target Salary']], color=['#E64662', '#468FE6', '#2CDC15']
+salary_types = ['Salary', 'Eroded Salary', 'Target Salary']
+adjusted_salaries_longform = (
+    adjusted_salaries[salary_types].reset_index().melt('year', var_name='Salary', value_name='Value')
 )
+
+chart1 = (
+    alt.Chart(adjusted_salaries_longform)
+    .mark_line(point=True)
+    .encode(
+        alt.X('year', type='temporal').axis(title=''),
+        alt.Y('Value', type='quantitative').axis(title=''),
+        color=alt.Color('Salary')
+        .scale(domain=salary_types, range=['#468FE6', '#E64662', '#2CDC15'])
+        .legend(orient='bottom', title=''),
+    )
+    .interactive()
+)
+
+plot_container.altair_chart(chart1, use_container_width=True)
 
 with st.expander('Results as a table'):
     st.dataframe(adjusted_salaries, hide_index=False)
